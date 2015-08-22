@@ -24,15 +24,15 @@ Teabot allows you to create highly interactive Telegram bot for Node.js with som
       * [defineAction(action, callback, [subAction])](#botdefineactionaction-callback-subaction)
       * [defineSubAction(action, callback, [subAction])](#actiondefinesubactionaction-callback-subaction)
     * [Start methods](#start-methods)
-      * [start(message)](#botstartmessage)
+      * [receive(message)](#botreceivemessage)
       * [startPooling([options])](#botstartpoolingoptions)
     * [Analytics](#bot-analytics)
       * [track(userId, message, event)](#bottrackuserid-message-event)
   * [Dialog object](#dialog-object)
     * [Action](#dialogaction)
       * [inAction()](#dialoginaction)
-      * [startAction(action)](#dialogstartactionaction)
-      * [endAction()](#dialogendaction)
+      * [startAction(action, [perform])](#dialogstartactionaction-perform)
+      * [endAction([saveTemp])](#dialogendactionsavetemp)
     * [User data](#dialoguserdata)
       * [getUserData(property)](#dialoggetuserdataproperty)
       * [setUserData(property, data)](#dialogsetuserdataproperty-data)
@@ -189,7 +189,7 @@ Bot
 
 Depending on what type of connection with Telegram is used (webhook or long pooling), there are 2 methods to start the bot.
 
-### Bot.start(message)
+### Bot.receive(message)
 
 To work with webhook.
 
@@ -233,18 +233,23 @@ It is an object that contains a list of actions in the form of linked list.
 
 Checks whether the user is in a state of action, and if so action will returned, otherwise false.
 
-### dialog.startAction(action)
+### dialog.startAction(action, [perform])
 
 Start the action. Then all processes occur in `defineAction` or `defineSubAction` callbacks.
 
 #### Params
 * **action** (*String*) - Name of action defined in `defineAction` or `defineSubAction` for start.
+* **[perform]** (*Boolean*) - If true, the action callback will be called immediately. Otherwise, it will happen at the next incoming message.
 
-### dialog.endAction()
+### dialog.endAction([saveTemp])
 
 Ends the action and clears `dialog.tempData`.
 
-[Example with action](https://github.com/strikeentco/teabot/tree/master/examples/ex3.action.js)
+#### Params
+* **[saveTemp]** (*Boolean*) - If true, then `dialog.tempData` will not be cleared.
+
+[Example with action: 1st way](https://github.com/strikeentco/teabot/tree/master/examples/ex3-1.action.js)
+[Example with action: 2nd way](https://github.com/strikeentco/teabot/tree/master/examples/ex3-2.action.js)
 
 ## dialog.userData
 

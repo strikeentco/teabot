@@ -6,7 +6,7 @@ Bot
   .defineCommand(function(dialog) {
     var message = dialog.message;
     if (message.isCommand()) {
-      if (message.getArgument() == '') {
+      if (!message.getArgument()) {
         dialog.sendMessage('It\'s just a command.');
       } else {
         dialog.sendMessage('It\'s command with argument.');
@@ -16,4 +16,4 @@ Bot
     }
   });
 
-Bot.startPooling(); // for webhook see webhook.js example
+Bot.startPooling(); // for webhook see ex1.webhook.js example

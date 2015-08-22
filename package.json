@@ -1,7 +1,7 @@
 {
   "name": "teabot",
   "author": "Alexey Bystrov <strikeentco@gmail.com>",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TeaBot - a way to build interactive Telegram bots.",
   "keywords": [
     "telegram",

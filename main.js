@@ -81,8 +81,11 @@ Tea.prototype._getUpdate = function(dialog, callback) {
 
 Tea.prototype._putUpdate = function(dialog) {
   if (this.db) {
-    var data = JSON.parse(JSON.stringify(dialog));
-    data.action = (dialog.action) ? dialog.action.getNames() : [];
+    var data = {
+      userData: dialog.userData,
+      tempData: dialog.tempData,
+      action: (dialog.action) ? dialog.action.getNames() : [],
+    };
     this.db.put(dialog.chatId + '_' + dialog.userId, data).catch(function(e) {
       console.error(e.stack);
     });
@@ -131,26 +134,13 @@ Tea.prototype._reinit = function() {
 };
 
 Tea.prototype._pooling = function() {
-  //this._bool || this._reinit();
-
   var _this = this;
-
-  /*function callback(data) {
-    var chatId = data.chat.id;
-    var userId = data.from.id;
-
-    _this.dialogs[chatId] || (_this.dialogs[chatId] = {});
-    _this.dialogs[chatId][userId] || (_this.dialogs[chatId][userId] = new Chat(chatId, userId));
-
-    _this.dialogs[chatId][userId]._processing(data, _this);
-  }*/
 
   _this.getUpdates(_this.offset, _this.limit, _this.timeout).then(function(update) {
     var result = update.result;
     var l = result.length;
     for (var i = 0; i < l; i++) {
-      //callback(result[i].message);
-      _this.start(result[i].message);
+      _this.receive(result[i].message);
       if (i === (l - 1)) {
         _this.offset = result[i].update_id + 1;
         return true;
@@ -161,7 +151,7 @@ Tea.prototype._pooling = function() {
   });
 };
 
-Tea.prototype.start = function(data) {
+Tea.prototype.receive = Tea.prototype.start = function(data) {
   this._bool || this._reinit();
 
   if (!data || !data.chat || !data.from) {
@@ -235,10 +225,40 @@ Tea.prototype.getActions = function() {
 Tea.prototype.defineAction = function(data, callback, subAction) {
   if (data && Array.isArray(data)) {
     for (var i = 0; i < data.length; i++) {
-      this.actions[data[i]] || (this.actions[data[i]] = new ConfigAction(data[i], 1, callback, subAction));
+      if (!this.actions[data[i]]) {
+        this.actions[data[i]] = new ConfigAction(data[i], 1, callback, subAction);
+        var cb = this.actions[data[i]]._func;
+        this.actions[data[i]]._func = function() {
+          if (arguments && arguments.length === 2) {
+            var dialog = arguments[1];
+            if (this.analytics && !this.options.analytics.manualMode) {
+              this.track(dialog.userId, dialog.message, arguments[0]);
+            }
+
+            cb.call(null, dialog);
+          } else if (arguments && arguments.length === 1) {
+            cb.call(null, arguments[0]);
+          }
+        };
+      }
     }
   } else if (data && typeof data === 'string') {
-    this.actions[data] || (this.actions[data] = new ConfigAction(data, 1, callback, subAction));
+    if (!this.actions[data]) {
+      this.actions[data] = new ConfigAction(data, 1, callback, subAction);
+      var cb = this.actions[data]._func;
+      this.actions[data]._func = function() {
+        if (arguments && arguments.length === 2) {
+          var dialog = arguments[1];
+          if (this.analytics && !this.options.analytics.manualMode) {
+            this.track(dialog.userId, dialog.message, arguments[0]);
+          }
+
+          cb.call(null, dialog);
+        } else if (arguments && arguments.length === 1) {
+          cb.call(null, arguments[0]);
+        }
+      };
+    }
   } else {
     throw new Error('Action must be string or array.');
   }
@@ -346,6 +366,19 @@ ConfigAction.prototype.defineSubAction = function(action, callback, subAction) {
     throw new Error('Required action name!');
   } else if (typeof action === 'string') {
     this.subAction = new ConfigAction(action, this.level + 1, callback, subAction);
+    var cb = this.subAction._func;
+    this.subAction._func = function() {
+      if (arguments && arguments.length === 2) {
+        var dialog = arguments[1];
+        if (this.analytics && !this.options.analytics.manualMode) {
+          this.track(dialog.userId, dialog.message, arguments[0]);
+        }
+
+        cb.call(null, dialog);
+      } else if (arguments && arguments.length === 1) {
+        cb.call(null, arguments[0]);
+      }
+    };
   } else {
     throw new Error('SubAction must be string.');
   }

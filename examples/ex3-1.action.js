@@ -6,6 +6,9 @@ Bot
   .defineCommand('/start', function(dialog) {
     dialog.startAction('/start').sendMessage('This is /start command');
   })
+  .defineCommand('/shift', function(dialog) {
+    dialog.startAction('/shift').sendMessage('This is /shift command');
+  })
   .defineCommand('/cancel', function(dialog) {
     if (dialog.inAction()) {
       dialog
@@ -30,6 +33,20 @@ Bot
         dialog.endAction().sendMessage('This is start subaction 2');
       })
     })
+  })
+  .defineAction('/shift', function(dialog) {
+    dialog
+      .startAction('shift subaction 1') //skip subaction 1
+      .startAction('shift subaction 2') //go to subaction 2
+      .sendMessage('This is /shift action');
+  }, function(action) {
+    action.defineSubAction('shift subaction 1', function(dialog) {
+      dialog.startAction('shift subaction 2').sendMessage('This is shift subaction 1'); //never fired
+    }, function(action) {
+      action.defineSubAction('shift subaction 2', function(dialog) {
+        dialog.endAction().sendMessage('This is shift subaction 2');
+      })
+    })
   });
 
-Bot.startPooling(); // for webhook see webhook.js example
+Bot.startPooling(); // for webhook see ex1.webhook.js example

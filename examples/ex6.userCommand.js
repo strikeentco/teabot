@@ -28,4 +28,4 @@ Bot
     })
   });
 
-Bot.startPooling(); // for webhook see webhook.js example
+Bot.startPooling(); // for webhook see ex1.webhook.js example

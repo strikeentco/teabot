@@ -18,7 +18,7 @@ Bot
 app.post('/', function (req, res) {
   var message = req.body.message || false;
   if (message) {
-    Bot.start(message);
+    Bot.receive(message);
   }
   res.status(200).end();
 });
