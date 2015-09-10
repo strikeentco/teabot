@@ -286,7 +286,7 @@ Tea.prototype.beforeMessage = function(callback) {
 
 Tea.prototype.on = function(type, callback) {
   var event = [
-    'text', 'audio', 'document', 'photo', 'sticker', 'video', 'contact', 'location', 'other',
+    'text', 'audio', 'document', 'photo', 'sticker', 'video', 'contact', 'location', 'voice', 'other'
   ];
   var _this = this;
   if (type && Array.isArray(type)) {
@@ -341,6 +341,10 @@ Tea.prototype.onLocation = function(callback) {
 
 Tea.prototype.onContact = function(callback) {
   return this.on('contact', callback);
+};
+
+Tea.prototype.onVoice = function(callback) {
+  return this.on('voice', callback);
 };
 
 Tea.prototype.onOther = function(callback) {

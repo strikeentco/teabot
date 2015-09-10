@@ -1,6 +1,6 @@
 teabot
 ==========
-[![license](https://img.shields.io/github/license/strikeentco/teabot.svg?style=flat)](https://github.com/strikeentco/teabot/blob/master/LICENSE) [![npm](https://img.shields.io/npm/v/teabot.svg?style=flat)](https://www.npmjs.com/package/teabot)
+[![license](https://img.shields.io/github/license/strikeentco/teabot.svg?style=flat)](https://github.com/strikeentco/teabot/blob/master/LICENSE) [![npm](https://img.shields.io/npm/v/teabot.svg?style=flat)](https://www.npmjs.com/package/teabot) [![bitHound Score](https://www.bithound.io/github/strikeentco/teabot/badges/score.svg)](https://www.bithound.io/github/strikeentco/teabot)
 
 Teabot allows you to create highly interactive Telegram bot for Node.js with some additional cool features.
 
@@ -12,8 +12,28 @@ Teabot allows you to create highly interactive Telegram bot for Node.js with som
 * Supports /command@BotName commands
 * Has own wrapper over Telegram API to enhance existing functionality
 
+# Usage
+
+```sh
+npm install teabot
+```
+
+```js
+var TeaBot = require('teabot');
+
+var token = 'YOUR_TELEGRAM_BOT_TOKEN';
+var name = 'YOUR_TELEGRAM_BOT_NAME';
+
+var Bot = new TeaBot(token, name);
+Bot.defineCommand(function(dialog) {
+  var message = dialog.message;
+  dialog.sendMessage('Echo: ' + message.text);
+});
+
+Bot.startPooling();
+```
+
 ## Quick navigation
-* [Usage](#usage)
 * [Methods](#methods)
   * [Bot object](#bot-object)
     * [Constructor](#new-teabottoken-name-options)
@@ -72,27 +92,6 @@ Teabot allows you to create highly interactive Telegram bot for Node.js with som
 * [Weird stuff](#weird-stuff)
 * [Examples](#examples)
 * [Documentation](#documentation)
-
-# Usage
-
-```sh
-npm install teabot
-```
-
-```js
-var TeaBot = require('teabot');
-
-var token = 'YOUR_TELEGRAM_BOT_TOKEN';
-var name = 'YOUR_TELEGRAM_BOT_NAME';
-
-var Bot = new TeaBot(token, name);
-Bot.defineCommand(function(dialog) {
-  var message = dialog.message;
-  dialog.sendMessage('Echo: ' + message.text);
-});
-
-Bot.startPooling();
-```
 
 # Methods
 
@@ -248,7 +247,7 @@ Ends the action and clears `dialog.tempData`.
 #### Params
 * **[saveTemp]** (*Boolean*) - If true, then `dialog.tempData` will not be cleared.
 
-[Example with action: 1st way](https://github.com/strikeentco/teabot/tree/master/examples/ex3-1.action.js)
+[Example with action: 1st way](https://github.com/strikeentco/teabot/tree/master/examples/ex3-1.action.js)<br>
 [Example with action: 2nd way](https://github.com/strikeentco/teabot/tree/master/examples/ex3-2.action.js)
 
 ## dialog.userData
@@ -326,6 +325,7 @@ Send text message.
 
 * **text** (*String*) - Text of the message to be sent.
 * **[options]** (*Object*) - Message options:
+  * **parse_mode** (*String*) - Send `Markdown`, if you want Telegram apps to show [bold, italic and inline URLs](https://core.telegram.org/bots/api#using-markdown) in your bot's message.
   * **disable_web_page_preview** (*Boolean*) - Disables link previews for links in this message.
   * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
   * **reply_markup** - Additional interface options.
@@ -514,7 +514,7 @@ It can be obtained from `dialog.message`.
 
 ### message.getType()
 
-Returns the type of message: `text`, `audio`, `document`, `photo`, `sticker`, `video`, `contact`, `location` or `other`.
+Returns the type of message: `text`, `audio`, `document`, `photo`, `sticker`, `video`, `contact`, `location`, `voice` or `other`.
 
 ### message.isCommand()
 
@@ -651,7 +651,13 @@ Bot
 [Simple example](https://github.com/strikeentco/teabot/tree/master/examples/ex6.userCommand.js)
 
 # Examples
-  [Examples](https://github.com/strikeentco/teabot/tree/master/examples/)
+* Webhook - [ex1.webhook.js](https://github.com/strikeentco/teabot/tree/master/examples/ex1.webhook.js)
+* Long pooling - [ex2.pooling.js](https://github.com/strikeentco/teabot/tree/master/examples/ex2.pooling.js)
+* Action: 1st way - [ex3-1.action.js](https://github.com/strikeentco/teabot/tree/master/examples/ex3-1.action.js)
+* Action: 2nd way - [ex3-2.action.js](https://github.com/strikeentco/teabot/tree/master/examples/ex3-2.action.js)
+* User data - [ex4.userData.js](https://github.com/strikeentco/teabot/tree/master/examples/ex4.userData.js)
+* Message - [ex5.message.js](https://github.com/strikeentco/teabot/tree/master/examples/ex5.message.js)
+* Weird stuff - [ex6.userCommand.js](https://github.com/strikeentco/teabot/tree/master/examples/ex6.userCommand.js)
 
 # Documentation
   Coming soon.
