@@ -651,6 +651,9 @@ Bot
 [Simple example](https://github.com/strikeentco/teabot/tree/master/examples/ex6.userCommand.js)
 
 # Examples
+* [@WezaBot](https://telegram.me/WezaBot) - [strikeentco/WezaBot](https://github.com/strikeentco/WezaBot)
+
+
 * Webhook - [ex1.webhook.js](https://github.com/strikeentco/teabot/tree/master/examples/ex1.webhook.js)
 * Long pooling - [ex2.pooling.js](https://github.com/strikeentco/teabot/tree/master/examples/ex2.pooling.js)
 * Action: 1st way - [ex3-1.action.js](https://github.com/strikeentco/teabot/tree/master/examples/ex3-1.action.js)

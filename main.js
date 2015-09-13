@@ -161,6 +161,7 @@ Tea.prototype.receive = Tea.prototype.start = function(data) {
   var chatId = data.chat.id;
   var userId = data.from.id;
 
+  Chat.prototype._putUpdate || (Chat.prototype._putUpdate = this._putUpdate.bind(this));
   this.dialogs[chatId] || (this.dialogs[chatId] = {});
   this.dialogs[chatId][userId] || (this.dialogs[chatId][userId] = new Chat(chatId, userId));
 
