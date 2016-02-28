@@ -1,17 +1,20 @@
 {
   "name": "teabot",
   "author": "Alexey Bystrov <strikeentco@gmail.com>",
-  "version": "1.1.2",
+  "version": "2.0.0",
   "description": "TeaBot - a way to build interactive Telegram bots.",
+  "engines": {
+    "node": ">=0.12.0"
+  },
   "keywords": [
     "telegram",
     "bot",
     "api",
     "teabot",
+    "inline",
+    "mode",
     "bot api",
-    "redis",
-    "aerospike",
-    "botan"
+    "plugins"
   ],
   "main": "./main.js",
   "repository": {
@@ -22,7 +25,8 @@
     "url": "https://github.com/strikeentco/teabot/issues"
   },
   "dependencies": {
-    "teabot-telegram-api": "^1.0.0"
+    "matcher": "^0.1.1",
+    "tg-yarl": "^1.1.2"
   },
   "license": "MIT"
 }

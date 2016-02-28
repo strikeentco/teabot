@@ -1,244 +1,97 @@
 teabot
 ==========
-[![license](https://img.shields.io/github/license/strikeentco/teabot.svg?style=flat)](https://github.com/strikeentco/teabot/blob/master/LICENSE) [![npm](https://img.shields.io/npm/v/teabot.svg?style=flat)](https://www.npmjs.com/package/teabot) [![bitHound Score](https://www.bithound.io/github/strikeentco/teabot/badges/score.svg)](https://www.bithound.io/github/strikeentco/teabot)
+[![license](https://img.shields.io/github/license/strikeentco/teabot.svg?style=flat)](https://github.com/strikeentco/teabot/blob/master/LICENSE) [![node](https://img.shields.io/node/v/teabot.svg)](https://www.npmjs.com/package/teabot) [![npm](https://img.shields.io/npm/v/teabot.svg?style=flat)](https://www.npmjs.com/package/teabot) [![bitHound Score](https://www.bithound.io/github/strikeentco/teabot/badges/score.svg)](https://www.bithound.io/github/strikeentco/teabot)
 
-Teabot allows you to create highly interactive Telegram bot for Node.js with some additional cool features.
+`TeaBot` allows you to create highly interactive Telegram bots for Node.js with some additional cool features.
 
 ## Features
 * Written for creating interactive bots
-* Data storage in Redis, Aerospike (more in the future)
-* Built-in support analytics [botan.io](http://botan.io)
-* Supports deep linking mechanism
-* Supports /command@BotName commands
-* Has own wrapper over Telegram API to enhance existing functionality
+* Supports [plugins](#plugins)
+  * Data storage in Redis, Aerospike ([with plugins](#plugins))
+  * Analytics [botan.io](http://botan.io) ([with plugins](#plugins))
+* Supports [Inline Mode](#inline-mode)
+* Supports `/command@BotName` commands
+* Has own [wrapper](https://github.com/strikeentco/tg-yarl) over Telegram API to enhance existing functionality
+
+Difference between TeaBot `1.x.x` and TeaBot `2.0.0` [here](https://github.com/strikeentco/teabot/tree/master/docs/MIGRATION.md).
 
 # Usage
 
 ```sh
-npm install teabot
+$ npm install teabot --save
 ```
 
+Simple echo bot:
 ```js
-var TeaBot = require('teabot');
+const TeaBot = require('teabot')('TELEGRAM_BOT_TOKEN', 'TELEGRAM_BOT_NAME');
 
-var token = 'YOUR_TELEGRAM_BOT_TOKEN';
-var name = 'YOUR_TELEGRAM_BOT_NAME';
-
-var Bot = new TeaBot(token, name);
-Bot.defineCommand(function(dialog) {
-  var message = dialog.message;
+TeaBot.defineCommand(function(dialog, message) {
   dialog.sendMessage('Echo: ' + message.text);
 });
 
-Bot.startPooling();
+TeaBot.startPolling();
 ```
 
 ## Quick navigation
 * [Methods](#methods)
-  * [Bot object](#bot-object)
-    * [Constructor](#new-teabottoken-name-options)
-    * [Commands](#botcommands)
-      * [defineCommand(command, callback)](#botdefinecommandcommand-callback)
-      * [defineCommand(callback)](#botdefinecommandcallback)
-    * [Actions](#botactions)
-      * [defineAction(action, callback, [subAction])](#botdefineactionaction-callback-subaction)
-      * [defineSubAction(action, callback, [subAction])](#actiondefinesubactionaction-callback-subaction)
-    * [Start methods](#start-methods)
-      * [receive(message)](#botreceivemessage)
-      * [startPooling([options])](#botstartpoolingoptions)
-    * [Analytics](#bot-analytics)
-      * [track(userId, message, event)](#bottrackuserid-message-event)
+  * [Start methods](#start-methods)
   * [Dialog object](#dialog-object)
-    * [Action](#dialogaction)
-      * [inAction()](#dialoginaction)
-      * [startAction(action, [perform])](#dialogstartactionaction-perform)
-      * [endAction([saveTemp])](#dialogendactionsavetemp)
-    * [User data](#dialoguserdata)
-      * [getUserData(property)](#dialoggetuserdataproperty)
-      * [setUserData(property, data)](#dialogsetuserdataproperty-data)
-      * [delUserData(property)](#dialogdeluserdataproperty)
-      * [clearUserData()](#dialogclearuserdata)
-    * [Temp data](#dialogtempdata)
-      * [getTempData(property)](#dialoggettempdataproperty)
-      * [setTempData(property, data)](#dialogsettempdataproperty-data)
-      * [delTempData(property)](#dialogdeltempdataproperty)
-      * [clearTempData()](#dialogcleartempdata)
-    * [Telegram API](#telegram-api)
-      * [sendMessage(text, [options])](#dialogsendmessagetext-options)
-      * [forwardMessage(fromChatId, messageId)](#dialogforwardmessagefromchatid-messageid)
-      * [sendPhoto(photo, [options])](#dialogsendphotophoto-options)
-      * [sendAudio(audio, [options])](#dialogsendaudioaudio-options)
-      * [sendDocument(document, [options])](#dialogsenddocumentdocument-options)
-      * [sendSticker(sticker, [options])](#dialogsendstickersticker-options)
-      * [sendVideo(video, [options])](#dialogsendvideovideo-options)
-      * [sendVoice(audio, [options])](#dialogsendvoiceaudio-options)
-      * [sendLocation(latitude, longitude, [options])](#dialogsendlocationlatitude-longitude-options)
-      * [sendChatAction(action)](#dialogsendchatactionaction)
-      * [getUserProfilePhotos()[offset], [limit]](#dialoggetuserprofilephotosoffset-limit)
-    * [Extra](#extra)
-      * [setKeyboard(keyboard, [resize], [once], [selective]](#dialogsetkeyboardkeyboard-resize-once-selective)
-      * [setKeyboard([hide_keyboard], [selective])](#dialogsetkeyboardhide_keyboard-selective)
-      * [InputFile object](#inputfile-object)
   * [Message object](#message-object)
-    * [getType()](#messagegettype)
-    * [isCommand()](#messageiscommand)
-    * [getCommand()](#messagegetcommand)
-    * [getArgument()](#messagegetargument)
-* [Databases](#databases)
-  * [Redis](#redis)
-  * [Aerospike](#aerospike)
-* [Analytics](#analytics)
-  * [Botan](#botan)
-* [Weird stuff](#weird-stuff)
-* [Examples](#examples)
+  * [Commands](#commands)
+  * [Actions](#actions)
+  * [Inline mode](#inline-mode)
+  * [Plugins](#plugins)
+  * [Errors](#errors)
 * [Documentation](#documentation)
+* [Examples](#examples)
 
 # Methods
 
-## Bot object
-
-Bot object stores all commands, actions, settings, and also all the dialogues bot.
-
-### new TeaBot(token, name, [options])
-
-#### Params
-* **token** (*String*) - Telegram Bot token.
-* **name** (*String*) - Telegram Bot name.
-* **[options]** (*Object*) - Config options:
-  * **db** (*Object*) - [DB config](#databases).
-  * **analytics** (*Object*) - [Analytics config](#analytics).
-
-```js
-var TeaBot = require('teabot');
-
-var Bot = new TeaBot(token, name);
-```
-
-## Bot.commands
-
-Commands always start with /.
-
-### Bot.defineCommand(command, callback)
-
-#### Params
-* **command** (*String|Array*) - Command or an array of commands.
-* **callback** (*Function*) - Callback which is invoked for this command/commands.
-
-### Bot.defineCommand(callback)
-
-#### Params
-* **callback** (*Function*) - Callback which is invoked if the given command is not defined or is not available.
-
-```js
-var Bot = new TeaBot(token, name);
-Bot
-  .defineCommand(['/start', '/help'], function(dialog) {
-    var message = dialog.message;
-    dialog.sendMessage('Hi there. This is a ' + message.getCommand() + ' command.');
-  })
-  .defineCommand(function(dialog) {
-    dialog.sendMessage('Send me /help for more information.');
-  });
-```
-
-## Bot.actions
-
-Actions are singly linked list of unlimited length.<br>
-The first action is always set using `defineAction`, and all others using the `defineSubAction` in the previous action.
-
-### Bot.defineAction(action, callback, [subAction])
-
-#### Params
-* **action** (*String|Array*) - Action or an array of actions.
-* **callback** (*Function*) - Callback which is invoked for this action/actions.
-* **[subAction]** (*Function*) - Callback is used to determine the sub-action.
-
-### action.defineSubAction(action, callback, [subAction])
-
-#### Params
-* **action** (*String|Array*) - Sub-action.
-* **callback** (*Function*) - Callback which is invoked for this sub-action.
-* **[subAction]** (*Function*) - Callback is used to determine the sub-action.
-
-```js
-var Bot = new TeaBot(token, name);
-Bot
-  .defineCommand('/start', function(dialog) {
-    dialog.startAction('/start').sendMessage('This is /start command');
-  })
-  .defineCommand(function(dialog) {
-    dialog.sendMessage('Send me /help for more information.');
-  });
-
-Bot
-  .defineAction('/start', function(dialog) {
-    dialog.startAction('subaction 1').sendMessage('This is /start action');
-  }, function(action) {
-    action.defineSubAction('subaction 1', function(dialog) {
-      dialog.startAction('subaction 2').sendMessage('This is subaction 1');
-    }, function(action) {
-      action.defineSubAction('subaction 2', function(dialog) {
-        dialog.endAction().sendMessage('This is subaction 2');
-      })
-    })
-  });
-```
+`TeaBot` based on [`tg-yarl`](https://github.com/strikeentco/tg-yarl) (wrapper over Telegram Bot Api with additional features) package, it means `TeaBot` inherits all methods from [`tg-yarl`](https://github.com/strikeentco/tg-yarl).
 
 ## Start methods
 
-Depending on what type of connection with Telegram is used (webhook or long pooling), there are 2 methods to start the bot.
+Depending on what type of connection with Telegram is used (`webhook` or `long polling`), there are 2 methods to start the bot.
 
-### Bot.receive(message)
+### TeaBot.receive(message)
 
-To work with webhook.
+To work with `webhook`.
 
 #### Params
 * **message** (*Object*) - Message object received from Telegram using the webhook.
 
-[Example webhook](https://github.com/strikeentco/teabot/tree/master/examples/ex1.webhook.js)
+### TeaBot.startPolling([options])
 
-### Bot.startPooling([options])
-
-To work with long pooling.
+To work with `long polling`.
 
 #### Params
-* **[options]** (*Object*) - Pooling options:
-  * **offset** (*Integer*) - Identifier of the first update to be returned.
-  * **timeout** (*Integer*) - Timeout in seconds for long polling.
-  * **limit** (*Integer*) - Limits the number of updates to be retrieved.
-  * **interval** (*Integer*) - Interval request updates from Telegram. In milliseconds (2000 by default).
-
-[Example long pooling](https://github.com/strikeentco/teabot/tree/master/examples/ex2.pooling.js)
-
-## Bot analytics
-
-### Bot.track(userId, message, event)
-
-#### Params
-* **userId** (*Integer*) - User id to track.
-* **message** (*Object*) - Message object.
-* **event** (*String*) - Event name.
+* **[options]** (*Object*) - Polling options:
+  * **offset** (*Integer*) - Identifier of the first update to be returned (0 by default).
+  * **limit** (*Integer*) - Limits the number of updates to be retrieved (100 by default).
+  * **timeout** (*Integer*) - Timeout in seconds for long polling (60 by default).
 
 ## Dialog object
 
-Dialog object stores bot current dialogue with the user, as well as commands for communication.<br>
-It can be obtained in `defineCommand`, `defineAction`, `defineSubAction` callbacks, or directly from Bot object.
+`Dialog object` stores bot current dialogue with the `user`, as well as commands ([full list here](https://github.com/strikeentco/teabot/tree/master/docs/#telegram-api)) for communication.<br>
+It can be obtained from the first parameter in `defineCommand` and `defineAction` callbacks, or directly from `TeaBot` object.
 
-## dialog.action
+### dialog.getAction()
 
-It is an object that contains a list of actions in the form of linked list.
+Checks whether the user is in a state of action, and if so `action name` will be returned, otherwise `false`.
 
-### dialog.inAction()
+### dialog.startAction(action)
 
-Checks whether the user is in a state of action, and if so action will returned, otherwise false.
-
-### dialog.startAction(action, [perform])
-
-Start the action. Then all processes occur in `defineAction` or `defineSubAction` callbacks.
+Start the action. Then all processes occur in `defineAction` callbacks. Action callback will be called at the next incoming message.
 
 #### Params
-* **action** (*String*) - Name of action defined in `defineAction` or `defineSubAction` for start.
-* **[perform]** (*Boolean*) - If true, the action callback will be called immediately. Otherwise, it will happen at the next incoming message.
+* **action** (*String*) - Name of the action defined in `defineAction`.
+
+### dialog.performAction(action)
+
+Perform the action. Then all processes occur in `defineAction` callbacks. Action callback will be called `immediately`.
+
+#### Params
+* **action** (*String*) - Name of the action defined in `defineAction`.
 
 ### dialog.endAction([saveTemp])
 
@@ -247,425 +100,190 @@ Ends the action and clears `dialog.tempData`.
 #### Params
 * **[saveTemp]** (*Boolean*) - If true, then `dialog.tempData` will not be cleared.
 
-[Example with action: 1st way](https://github.com/strikeentco/teabot/tree/master/examples/ex3-1.action.js)<br>
-[Example with action: 2nd way](https://github.com/strikeentco/teabot/tree/master/examples/ex3-2.action.js)
-
-## dialog.userData
-
-It is an object that can store user data (such as the bot settings).
-
-### dialog.getUserData(property)
-
-Gets user data on the property name.
-
-#### Params
-* **property** (*String*) - Property name.
-
-### dialog.setUserData(property, data)
-
-Sets the user data.
-
-#### Params
-* **property** (*String*) - Property name.
-* **data** (*Mixed*) - User data.
-
-### dialog.delUserData(property)
-
-Deletes user data on the property name.
-
-#### Params
-* **property** (*String*) - Property name.
-
-### dialog.clearUserData()
-
-Clears the user data.
-
-[Example with user data](https://github.com/strikeentco/teabot/tree/master/examples/ex4.userData.js)
-
-## dialog.tempData
-
-It is an object that can store temporary data to be transmitted between the actions.<br>
-Deleted automatically when calling `endAction()`.
-
-### dialog.getTempData(property)
-
-Gets temporary data on the property name.
-
-#### Params
-* **property** (*String*) - Property name.
-
-### dialog.setTempData(property, data)
-
-Sets the temporary data.
-
-#### Params
-* **property** (*String*) - Property name.
-* **data** (*Mixed*) - Temporary data.
-
-### dialog.delTempData(property)
-
-Deletes temporary data on the property name.
-
-#### Params
-* **property** (*String*) - Property name.
-
-### dialog.clearTempData()
-
-Clears the temporary data.
-
-## Telegram API
-
-All methods return a `Promise`, unless otherwise indicated. All methods are sent to the current chat/user.
-
-### dialog.sendMessage(text, [options])
-
-Send text message.
-
-#### Params:
-
-* **text** (*String*) - Text of the message to be sent.
-* **[options]** (*Object*) - Message options:
-  * **parse_mode** (*String*) - Send `Markdown`, if you want Telegram apps to show [bold, italic and inline URLs](https://core.telegram.org/bots/api#using-markdown) in your bot's message.
-  * **disable_web_page_preview** (*Boolean*) - Disables link previews for links in this message.
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.forwardMessage(fromChatId, messageId)
-
-Forward messages of any kind.
-
-#### Params:
-
-* **fromChatId** (*Integer*) - Unique identifier for the chat where the original message was sent.
-* **messageId** (*Integer*) - Unique message identifier.
-
-### dialog.sendPhoto(photo, [options])
-
-Send photo.
-
-#### Params:
-
-* **photo** (*String|Object*) - Object with file path, Stream, Buffer or `file_id`. See [InputFile object](#inputfile-object) for more info.
-* **[options]** (*Object*) - Photo options:
-  * **caption** (*String*) - Photo caption.
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.sendAudio(audio, [options])
-
-Send audio.
-
-#### Params:
-
-* **audio** (*String|Object*) - Object with file path, Stream, Buffer or `file_id`. See [InputFile object](#inputfile-object) for more info.
-* **[options]** (*Object*) - Audio options:
-  * **duration** (*Integer*) - Duration of sent audio in seconds.
-  * **performer** (*String*) - Performer of sent audio.
-  * **title** (*String*) - Title of sent audio.
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.sendDocument(document, [options])
-
-Send document.
-
-#### Params:
-
-* **document** (*String|Object*) - Object with file path, Stream, Buffer or `file_id`. See [InputFile object](#inputfile-object) for more info.
-* **[options]** (*Object*) - Document options:
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.sendSticker(sticker, [options])
-
-Send .webp stickers.
-
-#### Params:
-
-* **sticker** (*String|Object*) - Object with file path, Stream, Buffer or `file_id`. See [InputFile object](#inputfile-object) for more info.
-* **[options]** (*Object*) - Sticker options:
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.sendVideo(video, [options])
-
-Send video.
-
-#### Params:
-
-* **video** (*String|Object*) - Object with file path, Stream, Buffer or `file_id`. See [InputFile object](#inputfile-object) for more info.
-* **[options]** (*Object*) - Video options:
-  * **duration** (*Integer*) - Duration of sent video in seconds.
-  * **caption** (*String*) - Video caption.
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.sendVoice(audio, [options])
-
-Send voice.
-
-#### Params:
-
-* **audio** (*String|Object*) - Object with file path, Stream, Buffer or `file_id`. See [InputFile object](#inputfile-object) for more info.
-* **[options]** (*Object*) - Voice options:
-  * **duration** (*Integer*) - Duration of sent video in seconds.
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.sendLocation(latitude, longitude, [options])
-
-Send location.
-
-#### Params:
-
-* **latitude** (*Float*) - Latitude of location.
-* **longitude** (*Float*) - Longitude of location.
-* **[options]** (*Object*) - Location options:
-  * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
-  * **reply_markup** - Additional interface options.
-
-### dialog.sendChatAction(action)
-
-Send chat action.
-
-`typing` for text messages, `upload_photo` for photos, `record_video` or `upload_video` for videos, `record_audio` or `upload_audio` for audio files, `upload_document` for general files, `find_location` for location data.
-
-#### Params:
-
-* **action** (*String*) - Type of action to broadcast.
-
-### dialog.getUserProfilePhotos([offset], [limit])
-
-Use this method to get a list of profile pictures for a user.
-
-#### Params:
-
-* **[offset]** (*Integer*) - Sequential number of the first photo to be returned. By default, all photos are returned.
-* **[limit]** (*Integer*) - Limits the number of photos to be retrieved. Values between 1—100 are accepted. Defaults to 100.
-
-## Extra
-
-### dialog.setKeyboard(keyboard, [resize], [once], [selective])
-
-Custom keyboard.
-
-#### Params:
-
-* **keyboard** (*Array of Array of Strings*) - Array of button rows, each represented by an Array of Strings.
-* **[resize]** (*Boolean*) - Requests clients to resize the keyboard vertically for optimal fit.
-* **[once]** (*Boolean*) - Requests clients to hide the keyboard as soon as it's been used.
-* **[selective]** (*Boolean*) - Use this parameter if you want to show the keyboard to specific users only.
-
-### dialog.setKeyboard([hide_keyboard], [selective])
-
-Hide custom keyboard.
-
-#### Params:
-
-* **[hide_keyboard]** (*True*) - Requests clients to hide the custom keyboard.
-* **[selective]** (*Boolean*) - Use this parameter if you want to show the keyboard to specific users only.
-
-If you just want to hide the keyboard, then do this:
-```js
-dialog.setKeyboard().sendMessage('Text');
-//or
-dialog.setKeyboard(true);
-dialog.sendMessage('Text');
-```
-If you want to hide the keyboard to specific users only, then do this:
-```js
-dialog.setKeyboard(true, true).sendMessage('Text');
-//or
-dialog.setKeyboard(true, true);
-dialog.sendMessage('Text');
-```
-
-### InputFile object
-
-If buffer:
-```js
-var inputFile = {
-  buffer: new Buffer(),
-  fileName: 'file.png'
-};
-```
-If stream:
-```js
-var inputFile = {
-  stream: fs.createReadStream('file.png'),
-  fileName: 'file.png'
-};
-```
-If path:
-```js
-var inputFile = 'file.png';
-```
-If `file_id`:
-```js
-var inputFile = 'file_id';
-//or
-var inputFile = {fileId: 'file_id'};
-```
+#### More `dialog object` methods [in docs](https://github.com/strikeentco/teabot/tree/master/docs/#dialog-object).
 
 ## Message object
 
-Message object stores processed incoming message, as well as its original copy.<br>
-It can be obtained from `dialog.message`.
-
-### message.getType()
-
-Returns the type of message: `text`, `audio`, `document`, `photo`, `sticker`, `video`, `contact`, `location`, `voice` or `other`.
-
-### message.isCommand()
-
-If is message is command returns `true` else `false`.
+`Message object` stores processed incoming message, as well as its original copy.<br>
+It can be obtained from `dialog.message` or from the second parameter in `defineCommand` and `defineAction` callbacks.
 
 ### message.getCommand()
 
-Returns command.
+Returns `command` or empty string.
 
 ### message.getArgument()
 
-It returns the rest of the message, if it contains a command or the entire message.
+It returns the rest of the message, if it contains a `command` or the entire `message`.
 
-[Example with message](https://github.com/strikeentco/teabot/tree/master/examples/ex5.message.js)
+#### More `message object` methods [in docs](https://github.com/strikeentco/teabot/tree/master/docs/#message-object).
 
-# Databases
+## Commands
 
-By default, all data is stored in memory, but for synchronization between servers or nodes, you may need a database.
+`Commands` always starts with `/`.
 
-## Redis
+### TeaBot.defineCommand(command, callback)
 
-By default `key = 'app:teabot'`.
+#### Params
+* **command** (*String|Array*) - Command or an array of commands. Also supports wildcards (Use `*` to match zero or more characters. A pattern starting with `!` will be negated).
+* **callback** (*Function*) - Callback which is invoked for this command/commands.
+
+### TeaBot.defineCommand(callback)
+
+#### Params
+* **callback** (*Function*) - Callback which is invoked if the given command is not defined or is not available.
 
 ```js
-var redis = require('redis');
-var client = redis.createClient();
-
-var config = {
-  db: {
-    type: 'redis',
-    client: client,
-    key: 'bot:telegram'
-  }
-};
-var Bot = new TeaBot(token, name, config);
+TeaBot
+  .defineCommand(['/start', '/help'], function(dialog, message) {
+    dialog.sendMessage('Hi there. This is a ' + message.getCommand() + ' command.');
+  })
+  .defineCommand('/hi*', function(dialog, message) { // wildcard
+    dialog.sendMessage('This command ' + message.getCommand() + ', starts with /hi');
+  })
+  .defineCommand(function(dialog) {
+    dialog.sendMessage('Send me /help for more information.');
+  });
 ```
 
-## Aerospike
+## Actions
 
-By default `key = {ns: 'app', set: 'teabot'}`.
+You can define some `actions` if you want to add interactivity to your bot. Or you want to split your code.
+
+### TeaBot.defineAction(action, callback)
+
+#### Params
+* **action** (*String|Array*) - Action or an array of actions. Also supports wildcards (Use `*` to match zero or more characters. A pattern starting with `!` will be negated).
+* **callback** (*Function*) - Callback which is invoked for this action/actions when it starts.
 
 ```js
-var aerospike = require('aerospike');
-var client = aerospike.client({
-  hosts: [{
-    addr: '127.0.0.1',
-    port: 4000,
-  }]
-}).connect(function(response) {
-  if (response.code == 0) {
-    console.log('Connection to Aerospike cluster succeeded!');
-  }
+TeaBot
+  .defineCommand('/help', function(dialog, message) {
+    if (message.getArgument()) {
+      dialog.performAction('/help:1'); // /help argument
+    } else {
+      dialog.startAction('/help:2').sendMessage('This is /help command.'); // /help
+    }
+  })
+  .defineCommand(function(dialog) {
+    dialog.sendMessage('Send me /help for more information.');
+  });
+
+TeaBot
+  .defineAction('/help:*', function(dialog) { // wildcard
+    dialog.endAction().sendMessage('This is ' + dialog.getAction() + ' action'); // if /help was with argument, then /help:1 action, otherwise /help:2
+  });
+```
+
+## Inline mode
+
+### TeaBot.inlineQuery(query, callback)
+
+#### Params
+* **query** (*String|Array*) - Query or an array of queries. Also supports wildcards (Use `*` to match zero or more characters. A pattern starting with `!` will be negated).
+* **callback** (*Function*) - Callback which is invoked for this query/queries.
+
+### TeaBot.inlineQuery(callback)
+
+#### Params
+* **callback** (*Function*) - Callback which is invoked if the given query is not defined, is not available or is empty.
+
+```js
+TeaBot
+  .inlineQuery('tay*', function(query) { // wildcard
+    query
+      .addGif(
+        { gif_url: 'https://33.media.tumblr.com/tumblr_m3xrtsmgs11rn435g.gif', thumb_url: 'https://33.media.tumblr.com/tumblr_m3xrtsmgs11rn435g.gif', gif_width: 500, gif_height: 247 }
+      )
+      .addGif(
+        { gif_url: 'http://blog.admissions.illinois.edu/wp-content/uploads/2015/08/Screaming-Taylor-Swift.gif', thumb_url: 'http://blog.admissions.illinois.edu/wp-content/uploads/2015/08/Screaming-Taylor-Swift.gif', gif_width: 480, gif_height: 267 }
+      )
+      .answer();
+  })
+  .inlineQuery(function(query) {
+    query
+      .addArticles([
+        { title: 'Test 1', message_text: 'test' },
+        { title: 'Test 2', message_text: 'test' },
+        { title: 'Test 3', message_text: 'test' }
+      ])
+      .answer();
+  });
+```
+
+#### More info about `inline mode` [in docs](https://github.com/strikeentco/teabot/tree/master/docs/#inline-mode).
+#### More info about `query object` [in docs](https://github.com/strikeentco/teabot/tree/master/docs/#query-object).
+
+## Plugins
+
+At the moment `TeaBot` supports only `db` and `analytics` plugins, but in the future there will be more.
+
+### TeaBot.use(name, plugin)
+
+#### Params
+* **type** (*String*) - Plugin type: `db` or `analytics`.
+* **plugin** (*Object*) - Object with plugin.
+
+```js
+const TeaBot = require('teabot')('TELEGRAM_BOT_TOKEN', 'TELEGRAM_BOT_NAME');
+
+TeaBot.use('analytics', require('teabot-botan')('BOTAN_TOKEN'));
+
+TeaBot.defineCommand(function(dialog, message) {
+  dialog.sendMessage('Echo: ' + message.text); // all message events will be sent directly to botan.io
 });
 
-var config = {
-  db: {
-    type: 'aerospike',
-    client: client,
-    key: {
-      ns: 'bot', set: 'telegram'
-    }
-  }
-};
-var Bot = new TeaBot(token, name, config);
+TeaBot.startPolling();
 ```
 
-# Analytics
+### Available plugins:
+* DB:
+  * Redis - [teabot-redis](https://github.com/strikeentco/teabot-redis)
+  * Aerospike - [teabot-aerospike](https://github.com/strikeentco/teabot-aerospike)
+* Analytics:
+  * Botan - [teabot-botan](https://github.com/strikeentco/teabot-botan)
 
-TeaBot has built-in support analytics from [botan.io](http://botan.io).
+#### More info about `plugins` [in docs](https://github.com/strikeentco/teabot/tree/master/docs/#teabotplugins).
+#### Information about how to write your own plugin [here](https://github.com/strikeentco/teabot/tree/master/docs/PLUGINS.md).
 
-## Botan
+## Errors
 
-By default, all events are sent automatically at the `defineCommand`, `defineAction`, `defineSubAction`.<br>
-And it looks like this:
-![botanio](https://cloud.githubusercontent.com/assets/2401029/9345280/fa520b18-4617-11e5-838a-b8e2aff464d0.jpg)
+By default, no errors are displayed, except for those that may interfere start the bot. But with these methods you be able to handle errors by yourself.
 
-But you can send they manually using the [Bot.track](#bottrackuserid-message-event), if you specify `manualMode` property to true.
+### TeaBot.error(error)
+
+Use this method in `Promise`, `Callback` functions and whenever you want.
+
+#### Params
+* **error** (*Object*) - Error object.
+
+### TeaBot.onError(callback)
+
+When error occurs or when `TeaBot.error()` is used, callback will be invoked.
+
+#### Params
+* **callback** (*Function*) - Callback which is invoked when `TeaBot.error()` is called (including internal call).
 
 ```js
-var config = {
-  analytics: {
-    key: 'KEY',
-    manualMode: true
-  }
-};
-var Bot = new TeaBot(token, name, config);
+TeaBot.onError(function (e) {
+  console.error('TeaBot error:', e.stack);
+});
 
-Bot
-  .defineCommand(['/start', '/help'], function(dialog) {
-    var message = dialog.message;
-    dialog.sendMessage('Hi there. This is a ' + message.getCommand() + ' command.');
-    Bot.track(dialog.userId, message, message.getCommand());
-  })
-  .defineCommand(function(dialog) {
-    dialog.sendMessage('Send me /help for more information.');
-    Bot.track(dialog.userId, message, 'Default');
-  });
+TeaBot.defineCommand(function(dialog, message) {
+  dialog.sendMessage('Echo: ' + message.text).then(function() {
+    throw new Error('Test error 1');
+  }).catch(TeaBot.error);
+  throw new Error('Test error 2');
+});
 ```
 
-# Weird stuff
-
-It's weird but you can even let your users create their own command!
-
-**Note:** Currently it'll correctly work only with default memory storage in single node environment.
-
-```js
-Bot
-  .defineCommand('/add', function(dialog) {
-    dialog.startAction('/add').sendMessage('Send me new command');
-  })
-  .defineCommand('/cancel', function(dialog) {
-    dialog.endAction().sendMessage('Ok, now you can try something else.');
-  })
-  .defineCommand(function(dialog) {
-    dialog.sendMessage('Send me /help for more information.');
-  });
-
-Bot
-  .defineAction('/add', function(dialog) {
-    dialog.setTempData('command', dialog.message.text);
-    dialog.startAction('message').sendMessage('Send me message for new command');
-  }, function(action) {
-    action.defineSubAction('message', function(dialog) {
-      var message = dialog.message.text;
-      Bot.defineCommand(dialog.getTempData('command'), function(dialog) {
-        dialog.sendMessage(message);
-      });
-      dialog.sendMessage('New command ' + dialog.getTempData('command') + ' was successfully added!');
-      dialog.endAction();
-    })
-  });
-```
-
-[Simple example](https://github.com/strikeentco/teabot/tree/master/examples/ex6.userCommand.js)
+# [Documentation](https://github.com/strikeentco/teabot/tree/master/docs/)
 
 # Examples
-* [@WezaBot](https://telegram.me/WezaBot) - [strikeentco/WezaBot](https://github.com/strikeentco/WezaBot)
+* [@WezaBot](https://telegram.me/WezaBot) - [strikeentco/WezaBot](https://github.com/strikeentco/WezaBot) - weather bot written with TeaBot.
 
-
-* Webhook - [ex1.webhook.js](https://github.com/strikeentco/teabot/tree/master/examples/ex1.webhook.js)
-* Long pooling - [ex2.pooling.js](https://github.com/strikeentco/teabot/tree/master/examples/ex2.pooling.js)
-* Action: 1st way - [ex3-1.action.js](https://github.com/strikeentco/teabot/tree/master/examples/ex3-1.action.js)
-* Action: 2nd way - [ex3-2.action.js](https://github.com/strikeentco/teabot/tree/master/examples/ex3-2.action.js)
-* User data - [ex4.userData.js](https://github.com/strikeentco/teabot/tree/master/examples/ex4.userData.js)
-* Message - [ex5.message.js](https://github.com/strikeentco/teabot/tree/master/examples/ex5.message.js)
-* Weird stuff - [ex6.userCommand.js](https://github.com/strikeentco/teabot/tree/master/examples/ex6.userCommand.js)
-
-# Documentation
-  Coming soon.
+Other examples [here](https://github.com/strikeentco/teabot/tree/master/examples/).
 
 # License
 
 The MIT License (MIT)<br/>
-Copyright (c) 2015 Alexey Bystrov
+Copyright (c) 2015-2016 Alexey Bystrov

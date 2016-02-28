@@ -1,31 +1,37 @@
-var TeaBot = require('../main');
+'use strict';
 
-var Bot = new TeaBot(token, name);
+const TeaBot = require('../main')('YOUR_TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_NAME');
 
-Bot
-  .defineCommand('/add', function(dialog) {
+TeaBot.onError(function (e) {
+  console.error('Error:', e, e.stack);
+});
+
+TeaBot
+  .defineCommand('/add', function (dialog) {
     dialog.startAction('/add').sendMessage('Send me new command');
   })
-  .defineCommand('/cancel', function(dialog) {
+  .defineCommand('/cancel', function (dialog) {
     dialog.endAction().sendMessage('Ok, now you can try something else.');
   })
-  .defineCommand(function(dialog) {
+  .defineCommand(function (dialog) {
     dialog.sendMessage('Send me /help for more information.');
   });
 
-Bot
-  .defineAction('/add', function(dialog) {
-    dialog.setTempData('command', dialog.message.text);
-    dialog.startAction('message').sendMessage('Send me message for new command');
-  }, function(action) {
-    action.defineSubAction('message', function(dialog) {
-      var message = dialog.message.text;
-      Bot.defineCommand(dialog.getTempData('command'), function(dialog) {
-        dialog.sendMessage(message);
-      });
-      dialog.sendMessage('New command ' + dialog.getTempData('command') + ' was successfully added!');
-      dialog.endAction();
-    })
+TeaBot
+  .defineAction('/add', function (dialog, message) {
+    dialog.setTempData('command', message.getCommand());
+    dialog
+      .endAction(true)
+      .startAction('message')
+      .sendMessage('Send me message for new command');
+  })
+  .defineAction('message', function (dialog, message) {
+    TeaBot.defineCommand(dialog.getTempData('command'), function (dialog) {
+      dialog.sendMessage(message.getArgument());
+    });
+
+    dialog.sendMessage('New command ' + dialog.getTempData('command') + ' was successfully added!');
+    dialog.endAction();
   });
 
-Bot.startPooling(); // for webhook see ex1.webhook.js example
+TeaBot.startPolling(); // for webhook see ex1.webhook.js example

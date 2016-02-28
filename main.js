@@ -1,109 +1,90 @@
 'use strict';
+
 var fs = require('fs');
-var Api = require('teabot-telegram-api');
+var Api = require('tg-yarl');
+var matcher = require('matcher');
 var Action = require('./lib/action');
 var Chat = require('./lib/chat');
+var Inline = require('./lib/inline');
+var VERSION = require('./package.json').version;
 
-function Tea(token, name, options) {
-  if (!name) {
-    throw new Error('Telegram Bot name not provided!');
+function match(arr, str) {
+  return arr.filter(function (v) {
+    return matcher.isMatch(str, v);
+  })[0];
+}
+
+function Teabot(token, name) {
+  if (!(this instanceof Teabot)) {
+    return new Teabot(token, name);
   }
-
-  name = name.trim();
-  this.name = (name[0] == '@') ? name : '@' + name;
 
   if (!token) {
     throw new Error('Telegram Bot token not provided!');
   }
 
+  if (!name) {
+    throw new Error('Telegram Bot name not provided!');
+  }
+
+  this.version = VERSION;
   this.token = token;
   this.url = 'https://api.telegram.org/bot' + token + '/';
-
-  options || (options = {});
-  options.analytics || (options.analytics = {});
-  options.analytics.key || (options.analytics.key = false);
-  options.analytics.manualMode || (options.analytics.manualMode = false);
-  options.db || (options.db = {});
-  options.db.type || (options.db.type = false);
-  options.db.client || (options.db.client = false);
-  options.db.key || (options.db.key = {});
-  this.options = options;
-
-  this.db = (!options.db.type || !options.db.client) ? false : this._db();
-
-  this.analytics = (!options.analytics.key) ? false : this._analytics();
+  name = name.trim();
+  this.name = (name[0] === '@') ? name : '@' + name;
 
   this.dialogs = {};
   this.commands = {};
+  this.queries = {};
   this.actions = {};
   this.doOnce = {};
+  this.plugins = {
+    db: false,
+    analytics: false,
+    logging: false
+  };
+
+  Teabot.prototype.error = this.error.bind(this);
+  Teabot.prototype._polling = this._polling.bind(this);
 }
 
-Tea.prototype.__proto__ = Api.prototype;
+Teabot.prototype.__proto__ = Api.prototype;
 
-Tea.prototype._db = function() {
-  var db = this.options.db;
-  var path = __dirname + '/lib/db/' + db.type.toLowerCase();
-  if (fs.existsSync(path + '.js')) {
-    var Driver = require(path);
-    return new Driver(db.client, db.key);
-  } else {
-    throw new Error('Wrong DB type!');
-  }
-};
-
-Tea.prototype._analytics = function() {
-  var Analytics = require('./lib/analytics/botan');
-  return new Analytics(this.options.analytics.key);
-};
-
-Tea.prototype._getUpdate = function(dialog, callback) {
-  if (this.db) {
-    this.db.get(dialog.chatId + '_' + dialog.userId).then(function(data) {
+Teabot.prototype._getUpdate = function (dialog) {
+  if (this.getPlugin('db')) {
+    return this.getPlugin('db')._get(dialog.chatId + '_' + dialog.userId).then(function (data) {
       if (data) {
         dialog.userData = data.userData;
         dialog.tempData = data.tempData;
         dialog._toAction(data.action);
       }
 
-      callback(null);
-    }).catch(function(e) {
-      console.error(e.stack);
+      return dialog;
     });
   } else {
-    try {
-      callback(null);
-    } catch (e) {
-      console.error(e.stack);
-    }
+    return Promise.resolve(dialog);
   }
 };
 
-Tea.prototype._putUpdate = function(dialog) {
-  if (this.db) {
+Teabot.prototype._putUpdate = function (dialog) {
+  if (this.getPlugin('db')) {
     var data = {
       userData: dialog.userData,
       tempData: dialog.tempData,
       action: (dialog.action) ? dialog.action.getNames() : [],
     };
-    this.db.put(dialog.chatId + '_' + dialog.userId, data).catch(function(e) {
-      console.error(e.stack);
-    });
+    this.getPlugin('db')._put(dialog.chatId + '_' + dialog.userId, data).catch(this.error);
   }
 };
 
-Tea.prototype._preprocess = function(message) {
-  if (this.preprocess) {
-    this.preprocess(message);
-  }
+Teabot.prototype._preprocess = function (dialog, message) {
+  !this.preprocess || this.preprocess(dialog, message);
 };
 
-Tea.prototype._doOnce = function(type, dialog) {
+Teabot.prototype._doOnce = function (type, dialog) {
   if (this.doOnce[type] && typeof this.doOnce[type] === 'function') {
-    this.doOnce[type](dialog, dialog.message[type]);
-    if (this.analytics && !this.options.analytics.manualMode) {
-      this.track(dialog.userId, dialog.message, 'New  ' + type);
-    }
+    this.doOnce[type](dialog, dialog.message);
+    this._track(dialog.userId, dialog.message, 'New  ' + type);
 
     return true;
   }
@@ -111,12 +92,11 @@ Tea.prototype._doOnce = function(type, dialog) {
   return false;
 };
 
-Tea.prototype._reinit = function() {
-  var _this = this;
-  var actions = _this.getActions();
+Teabot.prototype._reinit = function () {
+  var actions = this._getActions();
 
-  actions.forEach(function(n) {
-    var action = _this.getAction(n);
+  actions.forEach(function (n) {
+    var action = this._getAction(n);
     if (action) {
       action._def && action._def(action);
       var count = action.count();
@@ -128,76 +108,102 @@ Tea.prototype._reinit = function() {
         }
       }
     }
-  });
+  }.bind(this));
 
   this._bool = true;
 };
 
-Tea.prototype._pooling = function() {
-  var _this = this;
-
-  _this.getUpdates(_this.offset, _this.limit, _this.timeout).then(function(update) {
-    var result = update.result;
+Teabot.prototype._polling = function () {
+  this.getUpdates(this.offset, this.limit, this.timeout).then(function (update) {
+    var result = update.body.result;
     var l = result.length;
     for (var i = 0; i < l; i++) {
-      _this.receive(result[i].message);
+      this.receive(result[i]);
       if (i === (l - 1)) {
-        _this.offset = result[i].update_id + 1;
+        this.offset = result[i].update_id + 1;
         return true;
       }
     }
-  }).then(function() {
-    setTimeout(_this._pooling.bind(_this), _this.interval);
-  });
+  }.bind(this)).then(this._polling);
 };
 
-Tea.prototype.receive = Tea.prototype.start = function(data) {
-  this._bool || this._reinit();
-
-  if (!data || !data.chat || !data.from) {
-    throw new Error('Something wrong with message object.');
-  }
-
-  var chatId = data.chat.id;
-  var userId = data.from.id;
-
-  Chat.prototype._putUpdate || (Chat.prototype._putUpdate = this._putUpdate.bind(this));
-  this.dialogs[chatId] || (this.dialogs[chatId] = {});
-  this.dialogs[chatId][userId] || (this.dialogs[chatId][userId] = new Chat(chatId, userId));
-
-  this.dialogs[chatId][userId]._processing(data, this);
-
-  return this.dialogs[chatId][userId];
-};
-
-Tea.prototype.startPooling = function(options) {
-  options || (options = {});
-  this.offset = options.offset || 0;
-  this.timeout = options.timeout || 0;
-  this.limit = options.limit || 0;
-  this.interval = (options.interval !== undefined && options.interval >= 0) ? options.interval : 2000;
-  var _this = this;
-  this.setWebhook('').then(function() {
-    _this._pooling();
-  });
-};
-
-Tea.prototype.getCommand = function(name) {
+Teabot.prototype._getCommand = function (name) {
   if (!name) {
     return false;
   } else {
-    var command = (name.indexOf('@') !== -1 || name == '_default_') ? name : name + this.name;
-    return this.commands[command] || false;
+    var command = (name.indexOf('@') !== -1 || name === '_default_') ? name : name + this.name;
+    return this.commands[match(this._getCommands(), command)] || false;
   }
 };
 
-Tea.prototype.getCommands = function() {
+Teabot.prototype._getCommands = function () {
   return Object.keys(this.commands);
 };
 
-Tea.prototype.defineCommand = function(data, callback) {
+Teabot.prototype._getQuery = function (name) {
+  return this.queries[match(this._getQueries(), name)] || false;
+};
+
+Teabot.prototype._getQueries = function () {
+  return Object.keys(this.queries);
+};
+
+Teabot.prototype._getAction = function (name) {
+  return this.actions[match(this._getActions(), name)] || false;
+};
+
+Teabot.prototype._getActions = function () {
+  return Object.keys(this.actions);
+};
+
+Teabot.prototype.receive = function (data) {
+  this._bool || this._reinit();
+
+  if (data.inline_query) {
+    data = data.inline_query;
+
+    if (!data.from) {
+      throw new Error('Something wrong with inline query object.');
+    }
+
+    var userId = data.from.id;
+
+    this.dialogs.inline || (this.dialogs.inline = {});
+    this.dialogs.inline[userId] || (this.dialogs.inline[userId] = new Inline(userId, this));
+
+    this.dialogs.inline[userId]._processing(data, this);
+
+    return this.dialogs.inline[userId];
+  } else if (data.message) {
+    data = data.message;
+
+    if (!data.chat || !data.from) {
+      throw new Error('Something wrong with message object.');
+    }
+
+    var chatId = data.chat.id;
+    var userId = data.from.id;
+
+    this.dialogs[chatId] || (this.dialogs[chatId] = {});
+    this.dialogs[chatId][userId] || (this.dialogs[chatId][userId] = new Chat(chatId, userId, this));
+
+    this.dialogs[chatId][userId]._processing(data, this);
+
+    return this.dialogs[chatId][userId];
+  }
+};
+
+Teabot.prototype.startPolling = function (options) {
+  options || (options = {});
+  this.offset = options.offset || 0;
+  this.timeout = options.timeout || 60;
+  this.limit = options.limit || 100;
+  this.setWebhook('').then(this._polling);
+};
+
+Teabot.prototype.defineCommand = function (data, callback) {
   if (data && typeof data === 'function') {
-    this.commands['_default_'] = data;
+    this.commands._default_ = data;
   } else if (data && Array.isArray(data)) {
     for (var i = 0; i < data.length; i++) {
       this.commands[data[i] + this.name] || (this.commands[data[i] + this.name] = callback);
@@ -205,150 +211,180 @@ Tea.prototype.defineCommand = function(data, callback) {
   } else if (data && typeof data === 'string') {
     this.commands[data + this.name] || (this.commands[data + this.name] = callback);
   } else {
-    throw new Error('Command must be string or array.');
+    throw new TypeError('Command must be a string or an array.');
   }
 
   return this;
 };
 
-Tea.prototype.getAction = function(name) {
-  if (!name) {
-    return false;
-  } else {
-    return this.actions[name] || false;
-  }
-};
-
-Tea.prototype.getActions = function() {
-  return Object.keys(this.actions);
-};
-
-Tea.prototype.defineAction = function(data, callback, subAction) {
-  if (data && Array.isArray(data)) {
+Teabot.prototype.inlineQuery = function (data, callback) {
+  if (data && typeof data === 'function') {
+    this.queries._default_ = data;
+  } else if (data && Array.isArray(data)) {
     for (var i = 0; i < data.length; i++) {
-      if (!this.actions[data[i]]) {
-        this.actions[data[i]] = new ConfigAction(data[i], 1, callback, subAction);
-        var cb = this.actions[data[i]]._func;
-        this.actions[data[i]]._func = function() {
-          if (arguments && arguments.length === 2) {
-            var dialog = arguments[1];
-            if (this.analytics && !this.options.analytics.manualMode) {
-              this.track(dialog.userId, dialog.message, arguments[0]);
-            }
-
-            cb.call(null, dialog);
-          } else if (arguments && arguments.length === 1) {
-            cb.call(null, arguments[0]);
-          }
-        };
-      }
+      this.queries[data[i]] || (this.queries[data[i]] = callback);
     }
   } else if (data && typeof data === 'string') {
-    if (!this.actions[data]) {
-      this.actions[data] = new ConfigAction(data, 1, callback, subAction);
-      var cb = this.actions[data]._func;
-      this.actions[data]._func = function() {
-        if (arguments && arguments.length === 2) {
-          var dialog = arguments[1];
-          if (this.analytics && !this.options.analytics.manualMode) {
-            this.track(dialog.userId, dialog.message, arguments[0]);
-          }
-
-          cb.call(null, dialog);
-        } else if (arguments && arguments.length === 1) {
-          cb.call(null, arguments[0]);
-        }
-      };
-    }
+    this.queries[data] || (this.queries[data] = callback);
   } else {
-    throw new Error('Action must be string or array.');
+    throw new TypeError('Query must be a string or an array.');
   }
 
   return this;
 };
 
-Tea.prototype.track = function(chatId, message, event) {
-  if (this.analytics) {
+Teabot.prototype.defineAction = function (data, callback, subAction) {
+  if (!data || (!Array.isArray(data) && !typeof data === 'string')) {
+    throw new TypeError('Action must be a string or an array.');
+  } else {
+    var _def = function (data) {
+      if (!this.actions[data]) {
+        this.actions[data] = new ConfigAction(data, 1, callback, subAction);
+        var cb = this.actions[data]._func;
+        this.actions[data]._func = function () {
+          if (arguments && arguments.length === 3) {
+            var dialog = arguments[1];
+            var message = arguments[2];
+
+            this._track(dialog.userId, message, arguments[0]);
+            cb.call(null, dialog, message);
+          } else if (arguments) {
+            cb.apply(null, arguments);
+          }
+        }.bind(this);
+      }
+    }.bind(this);
+
+    if (typeof data === 'string') {
+      _def(data);
+    } else {
+      for (var i = 0; i < data.length; i++) {
+        _def(data[i]);
+      }
+    }
+  }
+
+  return this;
+};
+
+Teabot.prototype.use = function (type, plugin) {
+  if (this.plugins[type] !== undefined) {
+    if (type !== plugin._getType()) {
+      throw new Error('Plugin has wrong type. ' + type + ' expected.');
+    } else {
+      this.plugins[type] = plugin;
+    }
+  } else {
+    throw new Error('Currently supports only db, analytics and logging plugins.');
+  }
+
+  return this;
+};
+
+Teabot.prototype.getPlugin = function (type) {
+  return this.plugins[type] || false;
+};
+
+Teabot.prototype._track = function (chatId, message, event, query) {
+  if (this.getPlugin('analytics')) {
+    if (!this.getPlugin('analytics')._getOption('manualMode')) {
+      if (!query || this.getPlugin('analytics')._getOption('allowQuery')) {
+        return this.track(chatId, message, event);
+      }
+    }
+  }
+};
+
+Teabot.prototype.track = function (chatId, message, event) {
+  if (this.getPlugin('analytics')) {
     var data = JSON.parse(JSON.stringify(message));
     if (data._origin_) {
       delete data._origin_;
     }
 
-    return this.analytics.track(chatId, data, event);
+    return this.getPlugin('analytics')._track(chatId, data, event);
   } else {
-    throw new Error('Analytics token not provided!');
+    throw new Error('Unable to find an activated analytics plugin. For example you can use teabot-botan.');
   }
 };
 
-Tea.prototype.beforeMessage = function(callback) {
+Teabot.prototype.beforeMessage = function (callback) {
   this.preprocess = callback;
   return this;
 };
 
-Tea.prototype.on = function(type, callback) {
-  var event = [
-    'text', 'audio', 'document', 'photo', 'sticker', 'video', 'contact', 'location', 'voice', 'other'
-  ];
-  var _this = this;
-  if (type && Array.isArray(type)) {
-    type.forEach(function(n) {
-      var message = n.toLowerCase();
-      message = (message == 'message') ? 'text' : message;
-      if (event.indexOf(message) != -1) {
-        _this.doOnce[message] = callback;
-      }
-    });
-
-    return this;
-  } else if (type && typeof type === 'string') {
-    var message = type.toLowerCase();
-    if (event.indexOf(message) != -1) {
-      this.doOnce[message] = callback;
-    }
-
-    return this;
-  } else {
-    throw new Error('Type must be string or array.');
-  }
+Teabot.prototype.error = function (e) {
+  !this._error || this._error(e);
 };
 
-Tea.prototype.onMessage = function(callback) {
+Teabot.prototype.onError = function (callback) {
+  this._error = callback;
+  return this;
+};
+
+Teabot.prototype.on = function (type, callback) {
+  var event = [
+    'text', 'audio', 'document', 'photo', 'sticker',
+    'video', 'contact', 'location', 'voice', 'other'
+  ];
+
+  if (type && Array.isArray(type)) {
+    type.forEach(function (n) {
+      var message = n.toLowerCase();
+      message = (message === 'message') ? 'text' : message;
+      if (event.indexOf(message) !== -1) {
+        this.doOnce[message] = callback;
+      }
+    }.bind(this));
+  } else if (type && typeof type === 'string') {
+    var message = type.toLowerCase();
+    if (event.indexOf(message) !== -1) {
+      this.doOnce[message] = callback;
+    }
+  } else {
+    throw new TypeError('Type must be a string or an array.');
+  }
+
+  return this;
+};
+
+Teabot.prototype.onMessage = function (callback) {
   return this.on('text', callback);
 };
 
-Tea.prototype.onPhoto = function(callback) {
+Teabot.prototype.onPhoto = function (callback) {
   return this.on('photo', callback);
 };
 
-Tea.prototype.onAudio = function(callback) {
+Teabot.prototype.onAudio = function (callback) {
   return this.on('audio', callback);
 };
 
-Tea.prototype.onDocument = function(callback) {
+Teabot.prototype.onDocument = function (callback) {
   return this.on('document', callback);
 };
 
-Tea.prototype.onSticker = function(callback) {
+Teabot.prototype.onSticker = function (callback) {
   return this.on('sticker', callback);
 };
 
-Tea.prototype.onVideo = function(callback) {
+Teabot.prototype.onVideo = function (callback) {
   return this.on('video', callback);
 };
 
-Tea.prototype.onLocation = function(callback) {
+Teabot.prototype.onLocation = function (callback) {
   return this.on('location', callback);
 };
 
-Tea.prototype.onContact = function(callback) {
+Teabot.prototype.onContact = function (callback) {
   return this.on('contact', callback);
 };
 
-Tea.prototype.onVoice = function(callback) {
+Teabot.prototype.onVoice = function (callback) {
   return this.on('voice', callback);
 };
 
-Tea.prototype.onOther = function(callback) {
+Teabot.prototype.onOther = function (callback) {
   return this.on('other', callback);
 };
 
@@ -366,29 +402,28 @@ function ConfigAction(action, level, cb, sa) {
 
 ConfigAction.prototype.__proto__ = Action.prototype;
 
-ConfigAction.prototype.defineSubAction = function(action, callback, subAction) {
+ConfigAction.prototype.defineSubAction = function (action, callback, subAction) {
   if (!action) {
     throw new Error('Required action name!');
   } else if (typeof action === 'string') {
     this.subAction = new ConfigAction(action, this.level + 1, callback, subAction);
     var cb = this.subAction._func;
-    this.subAction._func = function() {
-      if (arguments && arguments.length === 2) {
+    this.subAction._func = function () {
+      if (arguments && arguments.length === 3) {
         var dialog = arguments[1];
-        if (this.analytics && !this.options.analytics.manualMode) {
-          this.track(dialog.userId, dialog.message, arguments[0]);
-        }
+        var message = arguments[2];
 
+        this._track(dialog.userId, message, arguments[0]);
         cb.call(null, dialog);
-      } else if (arguments && arguments.length === 1) {
-        cb.call(null, arguments[0]);
+      } else if (arguments) {
+        cb.apply(null, arguments);
       }
     };
   } else {
-    throw new Error('SubAction must be string.');
+    throw new TypeError('SubAction must be a string.');
   }
 
   return this;
 };
 
-module.exports = Tea;
+module.exports = Teabot;

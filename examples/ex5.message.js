@@ -1,10 +1,13 @@
-var TeaBot = require('../main');
+'use strict';
 
-var Bot = new TeaBot(token, name);
+const TeaBot = require('../main')('YOUR_TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_NAME');
 
-Bot
-  .defineCommand(function(dialog) {
-    var message = dialog.message;
+TeaBot.onError(function (e) {
+  console.error('Error:', e, e.stack);
+});
+
+TeaBot
+  .defineCommand(function (dialog, message) {
     if (message.isCommand()) {
       if (!message.getArgument()) {
         dialog.sendMessage('It\'s just a command.');
@@ -16,4 +19,4 @@ Bot
     }
   });
 
-Bot.startPooling(); // for webhook see ex1.webhook.js example
+TeaBot.startPolling(); // for webhook see ex1.webhook.js example
