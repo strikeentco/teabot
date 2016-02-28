@@ -375,7 +375,7 @@ Clears the temporary data.
 All methods are:
 * return a `Promise`
 * sent to the current chat/user
-* inherited from [`tg-yarl`](https://github.com/strikeenco/tg-yarl) with a small piece of magic :sparkles:
+* inherited from [`tg-yarl`](https://github.com/strikeentco/tg-yarl) with a small piece of magic :sparkles:
 
 ### dialog.sendMessage(text, [options])
 
@@ -777,7 +777,7 @@ This method sends results which were added with previous methods only.
   * **is_personal** (*Boolean*) - Pass True, if results may be cached on the server side only for the user that sent the query. By default, results may be returned to any user who sends the same query.
   * **next_offset** (*String*) - Pass the offset that a client should send in the next query with the same text to receive more results. Pass an empty string if there are no more results or if you don‘t support pagination. Offset length can’t exceed 64 bytes.
 
-All methods above is a syntactic sugar, so if you are bold person, you can only use the next method which is inherited from [`tg-yarl`](https://github.com/strikeenco/tg-yarl).
+All methods above is a syntactic sugar, so if you are bold person, you can only use the next method which is inherited from [`tg-yarl`](https://github.com/strikeentco/tg-yarl).
 
 ### query.answerInlineQuery(results, [options])
 
