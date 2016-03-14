@@ -1,7 +1,7 @@
 {
   "name": "teabot",
   "author": "Alexey Bystrov <strikeentco@gmail.com>",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "TeaBot - a way to build interactive Telegram bots.",
   "engines": {
     "node": ">=0.12.0"
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "matcher": "^0.1.1",
-    "tg-yarl": "^1.1.2"
+    "tg-yarl": "~1.1.2"
   },
   "license": "MIT"
 }
