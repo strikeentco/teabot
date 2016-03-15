@@ -36,7 +36,7 @@
       * [clearTempData()](#dialogcleartempdata)
     * [Telegram API](#telegram-api)
       * [sendMessage(text, [options])](#dialogsendmessagetext-options)
-      * [forwardMessage(fromChatId, messageId)](#dialogforwardmessagefromchatid-messageid)
+      * [forwardMessage(fromChatId, messageId, [disableNotification])](#dialogforwardmessagefromchatid-messageid-disablenotification)
       * [sendPhoto(photo, [options])](#dialogsendphotophoto-options)
       * [sendAudio(audio, [options])](#dialogsendaudioaudio-options)
       * [sendDocument(document, [options])](#dialogsenddocumentdocument-options)
@@ -48,9 +48,15 @@
       * [getUserProfilePhotos([offset], [limit])](#dialoggetuserprofilephotosoffset-limit)
       * [getFile(file_id)](#dialoggetfilefile_id)
     * [Extra](#extra)
+      * [sendPhotoFromUrl(url, [options])](#dialogsendphotofromurlurl-options)
+      * [sendAudioFromUrl(url, [options])](#dialogsendaudiofromurlurl-options)
+      * [sendDocumentFromUrl(url, [options])](#dialogsenddocumentfromurlurl-options)
+      * [sendStickerFromUrl(url, [options])](#dialogsendstickerfromurlurl-options)
+      * [sendVideoFromUrl(url, [options])](#dialogsendvideofromurlurl-options)
+      * [sendVoiceFromUrl(url, [options])](#dialogsendvoicefromurlurl-options)
       * [downloadFile(file_id, path)](#dialogdownloadfilefile_id-path)
       * [setKeyboard(keyboard, [resize], [once], [selective]](#dialogsetkeyboardkeyboard-resize-once-selective)
-      * [setKeyboard([hide_keyboard], [selective])](#dialogsetkeyboardhide_keyboard-selective)
+      * [hideKeyboard([selective])](#dialoghidekeyboardselective)
       * [InputFile object](#inputfile-object)
   * [Message object](#message-object)
     * [getType()](#messagegettype)
@@ -391,7 +397,7 @@ Send text message.
   * **reply_to_message_id** (*Integer*) - If the message is a reply, ID of the original message.
   * **reply_markup** - Additional interface options.
 
-### dialog.forwardMessage(fromChatId, messageId, disableNotification)
+### dialog.forwardMessage(fromChatId, messageId, [disableNotification])
 
 Forward messages of any kind.
 
@@ -527,6 +533,60 @@ Use this method to get basic info about a file and prepare it for downloading.
 
 ## Extra
 
+### dialog.sendPhotoFromUrl(url, [options])
+
+Send photo from URL.
+
+#### Params:
+
+* **url** (*String*) - String with URL.
+* **[options]** (*Object*) - Photo options.
+
+### dialog.sendAudioFromUrl(url, [options])
+
+Send audio from URL.
+
+#### Params:
+
+* **url** (*String*) - String with URL.
+* **[options]** (*Object*) - Audio options.
+
+### dialog.sendDocumentFromUrl(url, [options])
+
+Send document from URL.
+
+#### Params:
+
+* **url** (*String*) - String with URL.
+* **[options]** (*Object*) - Document options.
+
+### dialog.sendStickerFromUrl(url, [options])
+
+Send .webp stickers from URL.
+
+#### Params:
+
+* **url** (*String*) - String with URL.
+* **[options]** (*Object*) - Sticker options.
+
+### dialog.sendVideoFromUrl(url, [options])
+
+Send video from URL.
+
+#### Params:
+
+* **url** (*String*) - String with URL.
+* **[options]** (*Object*) - Video options.
+
+### dialog.sendVoiceFromUrl(url, [options])
+
+Send voice from URL.
+
+#### Params:
+
+* **url** (*String*) - String with URL.
+* **[options]** (*Object*) - Voice options.
+
 ### dialog.downloadFile(file_id, path)
 
 Download file to specified path.
@@ -551,26 +611,25 @@ Custom keyboard.
 * **[once]** (*Boolean*) - Requests clients to hide the keyboard as soon as it's been used.
 * **[selective]** (*Boolean*) - Use this parameter if you want to show the keyboard to specific users only.
 
-### dialog.setKeyboard([hide_keyboard], [selective])
+### dialog.hideKeyboard([selective])
 
 If you just want to hide the keyboard, then do this:
 ```js
-dialog.setKeyboard().sendMessage('Text');
+dialog.hideKeyboard().sendMessage('Text');
 //or
-dialog.setKeyboard(true);
+dialog.hideKeyboard();
 dialog.sendMessage('Text');
 ```
 If you want to hide the keyboard to specific users only, then do this:
 ```js
-dialog.setKeyboard(true, true).sendMessage('Text');
+dialog.hideKeyboard(true).sendMessage('Text');
 //or
-dialog.setKeyboard(true, true);
+dialog.hideKeyboard(true);
 dialog.sendMessage('Text');
 ```
 
 #### Params:
 
-* **[hide_keyboard]** (*True*) - Requests clients to hide the custom keyboard.
 * **[selective]** (*Boolean*) - Use this parameter if you want to show the keyboard to specific users only.
 
 ### InputFile object
@@ -585,7 +644,7 @@ var inputFile = new Buffer(); //Buffer
 //or
 var inputFile = require('fs').createReadStream('./file.png'); //local Stream
 
-dialog.sendPhoto('chatId', inputFile);
+dialog.sendPhoto(inputFile);
 ```
 
 For remote `Stream`:
@@ -595,7 +654,7 @@ var inputFile = {
   filename: 'image.jpg'
 };
 
-dialog.sendPhoto('chatId', inputFile);
+dialog.sendPhoto(inputFile);
 ```
 
 ### ↥ [Jump to navigation](#quick-navigation).

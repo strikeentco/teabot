@@ -27,9 +27,9 @@ function Teabot(token, name) {
     throw new Error('Telegram Bot name not provided!');
   }
 
+  Api.call(this, token);
+
   this.version = VERSION;
-  this.token = token;
-  this.url = 'https://api.telegram.org/bot' + token + '/';
   name = name.trim();
   this.name = (name[0] === '@') ? name : '@' + name;
 
@@ -48,7 +48,7 @@ function Teabot(token, name) {
   Teabot.prototype._polling = this._polling.bind(this);
 }
 
-Teabot.prototype.__proto__ = Api.prototype;
+Teabot.prototype = Object.create(Api.prototype);
 
 Teabot.prototype._getUpdate = function (dialog) {
   if (this.getPlugin('db')) {

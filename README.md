@@ -25,7 +25,7 @@ Simple echo bot:
 ```js
 const TeaBot = require('teabot')('TELEGRAM_BOT_TOKEN', 'TELEGRAM_BOT_NAME');
 
-TeaBot.defineCommand(function(dialog, message) {
+TeaBot.defineCommand(function (dialog, message) {
   dialog.sendMessage('Echo: ' + message.text);
 });
 
@@ -134,13 +134,13 @@ It returns the rest of the message, if it contains a `command` or the entire `me
 
 ```js
 TeaBot
-  .defineCommand(['/start', '/help'], function(dialog, message) {
+  .defineCommand(['/start', '/help'], function (dialog, message) {
     dialog.sendMessage('Hi there. This is a ' + message.getCommand() + ' command.');
   })
-  .defineCommand('/hi*', function(dialog, message) { // wildcard
+  .defineCommand('/hi*', function (dialog, message) { // wildcard
     dialog.sendMessage('This command ' + message.getCommand() + ', starts with /hi');
   })
-  .defineCommand(function(dialog) {
+  .defineCommand(function (dialog) {
     dialog.sendMessage('Send me /help for more information.');
   });
 ```
@@ -157,19 +157,19 @@ You can define some `actions` if you want to add interactivity to your bot. Or y
 
 ```js
 TeaBot
-  .defineCommand('/help', function(dialog, message) {
+  .defineCommand('/help', function (dialog, message) {
     if (message.getArgument()) {
       dialog.performAction('/help:1'); // /help argument
     } else {
       dialog.startAction('/help:2').sendMessage('This is /help command.'); // /help
     }
   })
-  .defineCommand(function(dialog) {
+  .defineCommand(function (dialog) {
     dialog.sendMessage('Send me /help for more information.');
   });
 
 TeaBot
-  .defineAction('/help:*', function(dialog) { // wildcard
+  .defineAction('/help:*', function (dialog) { // wildcard
     dialog.endAction().sendMessage('This is ' + dialog.getAction() + ' action'); // if /help was with argument, then /help:1 action, otherwise /help:2
   });
 ```
@@ -189,7 +189,7 @@ TeaBot
 
 ```js
 TeaBot
-  .inlineQuery('tay*', function(query) { // wildcard
+  .inlineQuery('tay*', function (query) { // wildcard
     query
       .addGif(
         { gif_url: 'https://33.media.tumblr.com/tumblr_m3xrtsmgs11rn435g.gif', thumb_url: 'https://33.media.tumblr.com/tumblr_m3xrtsmgs11rn435g.gif', gif_width: 500, gif_height: 247 }
@@ -199,7 +199,7 @@ TeaBot
       )
       .answer();
   })
-  .inlineQuery(function(query) {
+  .inlineQuery(function (query) {
     query
       .addArticles([
         { title: 'Test 1', message_text: 'test' },
@@ -228,7 +228,7 @@ const TeaBot = require('teabot')('TELEGRAM_BOT_TOKEN', 'TELEGRAM_BOT_NAME');
 
 TeaBot.use('analytics', require('teabot-botan')('BOTAN_TOKEN'));
 
-TeaBot.defineCommand(function(dialog, message) {
+TeaBot.defineCommand(function (dialog, message) {
   dialog.sendMessage('Echo: ' + message.text); // all message events will be sent directly to botan.io
 });
 
@@ -268,8 +268,8 @@ TeaBot.onError(function (e) {
   console.error('TeaBot error:', e.stack);
 });
 
-TeaBot.defineCommand(function(dialog, message) {
-  dialog.sendMessage('Echo: ' + message.text).then(function() {
+TeaBot.defineCommand(function (dialog, message) {
+  dialog.sendMessage('Echo: ' + message.text).then(function () {
     throw new Error('Test error 1');
   }).catch(TeaBot.error);
   throw new Error('Test error 2');
