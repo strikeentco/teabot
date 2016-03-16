@@ -110,6 +110,10 @@ Teabot.prototype._reinit = function () {
     }
   }.bind(this));
 
+  Chat.prototype.error = this.error.bind(this);
+  Chat.prototype._putUpdate = this._putUpdate.bind(this);
+  Inline.prototype.error = this.error.bind(this);
+
   this._bool = true;
 };
 
